@@ -791,15 +791,18 @@ def clean_netlist(netlist):
     # Remove whitespace inside expression
     netlist_d = [remove_enclosed_space(line) for line in netlist_c]
 
-    # Lowercase all letters unless .include statement
-    netlist_e = []
-    for line in netlist_d:
-        if re.match("^.include.*", line):
-            netlist_e.append(line)
-        else:
-            netlist_e.append(line.lower())
+    # Remove space around assignments
+    netlist_e = [re.sub(" {1,}= {1,}", "=", line) for line in netlist_d]
 
-    netlist = "\n".join(netlist_e)
+    # Lowercase all letters unless .include statement
+    netlist_f = []
+    for line in netlist_e:
+        if re.match("^.include.*", line):
+            netlist_f.append(line) 
+        else:
+            netlist_f.append(line.lower()) 
+
+    netlist = "\n".join(netlist_f)
     return netlist
 
 

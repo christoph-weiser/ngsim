@@ -772,10 +772,13 @@ def clean_netlist(netlist):
 
     # Remove emtpy continued (+) lines, emtpy lines
     # and comments.
-    netlist_a = []
+    netlist_a0 = []
     for line in netlist:
         if not re.match("^\+\s*$|^\s{,}$|^\*.*$",line):
-            netlist_a.append(line)
+            netlist_a0.append(line)
+
+    # Remove end of line comments
+    netlist_a = [re.sub("\$.*", "", line) for line in netlist_a0]
 
     # Combine split lines back to one
     netlist_b = []
@@ -798,9 +801,9 @@ def clean_netlist(netlist):
     netlist_f = []
     for line in netlist_e:
         if re.match("^.include.*", line):
-            netlist_f.append(line) 
+            netlist_f.append(line)
         else:
-            netlist_f.append(line.lower()) 
+            netlist_f.append(line.lower())
 
     netlist = "\n".join(netlist_f)
     return netlist

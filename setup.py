@@ -6,5 +6,5 @@ setup(
    description='Module for simulation around ngspice',
    author='Christoph Weiser',
    packages=['ngsim'],
-   install_requires=['numpy', 'pandas', 'matplotlib']
+   install_requires=['numpy', 'pandas', 'matplotlib', 'dataclasses']
 )

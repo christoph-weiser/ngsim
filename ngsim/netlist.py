@@ -148,11 +148,7 @@ class ControlSectionLogical(ControlSection):
         that can be used to run a ngspice simulation.
 
         """
-        section = [ "",
-        "*******************",
-        "* Control section *",
-        "*******************",
-        ".control" ]
+        section = [ "", "* Control section", "", ".control" ]
         app = section.append
         # ascii or raw output
         app("set filetype={}".format(self.filetype))
@@ -460,12 +456,13 @@ class CircuitSection():
         Synthesize will update the object internal netlist when called.
 
         """
-        netlist = [ "* {}\n\n".format(self.filename),
-        "*******************\n",
-        "* Circuit section *\n",
-        "*******************\n" ]
+        netlist = [ "* {}\n\n".format(self.filename) ]
         for uid in self.circuit:
             s = ""
+            if self.circuit[uid]["instance"] == ".ends":
+                is_ends = True
+            else:
+                is_ends = False
             for k in self.circuit[uid]:
                 if k == "instance":
                     s += self.circuit[uid][k] + " "
@@ -478,6 +475,8 @@ class CircuitSection():
                     if sa:
                         s += sa
             netlist.append(s+"\n")
+            if is_ends:
+                netlist.append("\n")
         self._netlist = netlist
 
 
@@ -769,6 +768,8 @@ def clean_netlist(netlist):
 
     if isinstance(netlist, str):
         netlist = netlist.split("\n")
+
+    netlist = [line.lstrip() for line in netlist]
 
     # Remove emtpy continued (+) lines, emtpy lines
     # and comments.

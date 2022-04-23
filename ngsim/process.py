@@ -39,7 +39,7 @@ def xschem2spice(schematic, outputdir, xschemrc):
     os.chdir(rc_location)
     if outputdir == ".":
         outputdir = pwd
-    p = subprocess.Popen(["xschem", "-x", "-n", schematic,
+    p = subprocess.Popen(["xschem", "-x", "-n", "-q", schematic,
                           "-o", outputdir, "--tcl", "set cmdline_ignore true",
                           "--rcfile", xschemrc])
     (output, err) = p.communicate()

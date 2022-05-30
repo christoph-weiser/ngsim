@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import ngsim as ng
+import ngsim as ngs
 
 netlist = "netlist/complete.sp"
 

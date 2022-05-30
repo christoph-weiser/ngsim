@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
-import ngsim
-import pytest
-import logging
 import os
+import ngsim
+import logging
+import itertools
 from filelock import FileLock
-import datatools as dt
+from multiprocessing import Pool, Manager
 
-
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
-log.addHandler(logging.NullHandler())
+
 
 CORNERS_PATH = os.getenv('CORNERS')
 DESIGN_PATH  = os.getenv('DESIGN')
@@ -18,24 +18,17 @@ SIM = os.getenv('SIM')
 LOGDATE = os.getenv('LOGDATE')
 CONFFILE = os.getenv('CONFFILE')
 CWD = os.getenv('CWD')
-
-#----------------------------------------------------------------------
-# GENERAL NOTES
-#----------------------------------------------------------------------
-# - Test and config has always the same name as TB schematic.
-# - To simulate PVT the supply source has to be named vdd.
-# - Use a configuration template with this test as defined 
-#   through my ngsim.parse_configuration parser.
-#----------------------------------------------------------------------
+CORES= int(os.getenv('CORES'))
 
 filename = CONFFILE
 cdir = CWD
-
-
-log.info("filename", filename)
-log.info("cwd", CWD)
-
 name, file_sch, file_conf, file_res = ngsim.path_setup(filename, cdir, LOGDATE)
+
+log.info("name: {}".format(name))
+log.info("file_sch: {}".format(file_sch))
+log.info("file_conf: {}".format(file_conf))
+log.info("file_res: {}".format(file_res))
+
 file_net = ngsim.create_netlist(file_sch, SIM, XSCHEMRC)
 netlist_in = ngsim.read_netlist(file_net)
 
@@ -55,21 +48,16 @@ except:
     var_name = "None"
 
 
-#----------------------------------------------------------------------
-# TEST SETUP
-#----------------------------------------------------------------------
-
-@pytest.fixture(scope="session", autouse=True)
 def create_resultfile():
     with open(file_res, "w") as resfile:
         resfile.write("corner,vdd,temp,{},par,val,pass\n".format(var_name))
 
+def test_corners(args):
+    temp   = args[0]
+    vdd    = args[1]
+    corner = args[2]
+    var    = args[3]
 
-@pytest.mark.parametrize("temp",   CONF["temperature"])
-@pytest.mark.parametrize("vdd",    CONF["supply"])
-@pytest.mark.parametrize("corner", CONF["corners"])
-@pytest.mark.parametrize("var",    var_value)
-def test_Corners(corner, vdd, temp, var):
     log.info("--------------------")
     log.info("Starting Test")
     log.info("--------------------")
@@ -81,7 +69,6 @@ def test_Corners(corner, vdd, temp, var):
 
     cir = ngsim.CircuitSection(netlist_in, True)
     ctl = ngsim.extract_control(netlist_in)
-
 
     def alter_vdd(elem, vdd):
         elem["args"] = [str(vdd)]
@@ -110,15 +97,21 @@ def test_Corners(corner, vdd, temp, var):
     simulation_netlist = include + netlist
     output = ngsim.run_simulation(simulation_netlist)
     res = ngsim.extract_output_data(output)
-
     overall_result = True
     failed = []
+    log.info(res)
+
     for elem in CONF["evaluate"]:
-        eval_str = "{} {} {}".format(res[elem[0]], elem[1], elem[2])
-        if not eval(eval_str):
-            overall_result = False
-            failed.append(elem[0])
-            log.warning("Failed Condition, \"{}\" = {}".format(elem[0], eval_str))
+        try:
+            eval_str = "{} {} {}".format(res[elem[0]], elem[1], elem[2])
+            if not eval(eval_str):
+                overall_result = False
+                failed.append(elem[0])
+                log.warning("Failed Condition, \"{}\" = {}".format(elem[0], eval_str))
+        except KeyError:
+                overall_result = False
+                failed.append(elem[0])
+                log.warning("Failed Simulation")
 
     log.warning("Failed parameters: {}\n".format(failed))
     lockfile = file_res + ".lock"
@@ -135,7 +128,18 @@ def test_Corners(corner, vdd, temp, var):
     log.info("Results")
     log.info("--------------------")
     for k in res:
-        log.info("{:<12} = {:<12}".format(k, dt.convert_sci_eng(res[k])))
+        log.info("{:<12} = {:<12}".format(k, res[k]))
     log.info("--------------------")
-    if not overall_result:
-        assert False
+
+
+#----------------------------------------------------------------------
+# TEST RUN
+#----------------------------------------------------------------------
+
+create_resultfile()
+
+corners = list(itertools.product(CONF["temperature"], CONF["supply"], CONF["corners"], var_value))
+
+with Pool(processes=CORES) as pool:
+    pool.map(test_corners, corners)
+

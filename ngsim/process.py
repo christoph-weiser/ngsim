@@ -124,7 +124,7 @@ def extract_control(netlist, skip_plots=True, as_str=True):
         if re.match(".endc", line):
             inside_control_code = False
     if as_str:
-        netlist_extract = "\n".join(netlist_extract)
+        netlist_extract = "".join(netlist_extract)
     return netlist_extract
 
 

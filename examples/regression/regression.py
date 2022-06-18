@@ -10,24 +10,25 @@ from multiprocessing import Pool, Manager
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
 
-
+#--------------------------------------------------
+# Environment Variables set in your shell.
+#--------------------------------------------------
 CORNERS_PATH = os.getenv('CORNERS')
 DESIGN_PATH  = os.getenv('DESIGN')
-XSCHEMRC = os.getenv('XSCHEMRC')
-SIM = os.getenv('SIM')
-LOGDATE = os.getenv('LOGDATE')
-CONFFILE = os.getenv('CONFFILE')
-CWD = os.getenv('CWD')
-CORES= int(os.getenv('CORES'))
+XSCHEMRC     = os.getenv('XSCHEMRC')
+SIM          = os.getenv('SIM')
+LOGDATE      = os.getenv('LOGDATE')
+CONFFILE     = os.getenv('CONFFILE')
+CWD          = os.getenv('CWD')
+CORES        = int(os.getenv('CORES'))
+#--------------------------------------------------
 
-filename = CONFFILE
-cdir = CWD
-name, file_sch, file_conf, file_res = ngsim.path_setup(filename, cdir, LOGDATE)
+name, file_sch, file_conf, file_res = ngsim.path_setup(CONFFILE, CWD, LOGDATE)
 
-log.info("name: {}".format(name))
-log.info("file_sch: {}".format(file_sch))
+log.info("name:      {}".format(name))
+log.info("file_sch:  {}".format(file_sch))
 log.info("file_conf: {}".format(file_conf))
-log.info("file_res: {}".format(file_res))
+log.info("file_res:  {}".format(file_res))
 
 file_net = ngsim.create_netlist(file_sch, SIM, XSCHEMRC)
 netlist_in = ngsim.read_netlist(file_net)
@@ -35,22 +36,23 @@ netlist_in = ngsim.read_netlist(file_net)
 cir = ngsim.CircuitSection(netlist_in, True)
 ctl = ngsim.extract_control(netlist_in)
 
-CONF = ngsim.parse_configuration(file_conf)
+configuration = ngsim.parse_configuration(file_conf)
 
-if not CONF["temperature"]:
-    CONF["temperature"] = ["27"]
+if not configuration["temperature"]:
+    configuration["temperature"] = ["27"]
 
 try:
-    var_name = list(CONF["variable"].keys())[0]
-    var_value = list(CONF["variable"].values())[0]
+    var_name = list(configuration["variable"].keys())[0]
+    var_value = list(configuration["variable"].values())[0]
 except:
     var_value = [None]
     var_name = "None"
 
+with open(file_res, "w") as resfile:
+    resfile.write("corner,vdd,temp,{},par,val,pass\n".format(var_name))
 
-def create_resultfile():
-    with open(file_res, "w") as resfile:
-        resfile.write("corner,vdd,temp,{},par,val,pass\n".format(var_name))
+netlistdir = file_res.replace(".csv", "")
+os.mkdir(netlistdir)
 
 def test_corners(args):
     temp   = args[0]
@@ -84,8 +86,9 @@ def test_corners(args):
             elem["args"] = ["{}={}".format(sargs[0], variable)]
         return elem
 
-    cir.apply(alter_vdd,  {"instance": "vdd",    "type": "vsource"},   vdd=vdd)
-    cir.apply(alter_var,  {"instance": ".param", "type": "statement"}, variable=var, name=var_name)
+    cir.apply(alter_vdd, {"instance": "vdd",    "type": "vsource"}, vdd=vdd)
+    cir.apply(alter_var, {"instance": ".param", "type": "statement"}, variable=var, name=var_name)
+
     if cir.filter({"instance": ".temp",  "type": "statement"}):
         cir.apply(alter_temp, {"instance": ".temp",  "type": "statement"}, temp=temp)
     else:
@@ -95,13 +98,18 @@ def test_corners(args):
 
     include = ".include {}/{}.spice\n".format(CORNERS_PATH, corner)
     simulation_netlist = include + netlist
+
+    corner_netlist = "{}_{}_{}_{}.spice".format(corner, vdd, temp, var)
+    with open("{}/{}".format(netlistdir, corner_netlist), "w") as outfile: 
+        outfile.write(simulation_netlist)
+
     output = ngsim.run_simulation(simulation_netlist)
     res = ngsim.extract_output_data(output)
     overall_result = True
     failed = []
     log.info(res)
 
-    for elem in CONF["evaluate"]:
+    for elem in configuration["evaluate"]:
         try:
             eval_str = "{} {} {}".format(res[elem[0]], elem[1], elem[2])
             if not eval(eval_str):
@@ -136,10 +144,10 @@ def test_corners(args):
 # TEST RUN
 #----------------------------------------------------------------------
 
-create_resultfile()
-
-corners = list(itertools.product(CONF["temperature"], CONF["supply"], CONF["corners"], var_value))
+corners = list(itertools.product(configuration["temperature"], 
+                                 configuration["supply"], 
+                                 configuration["corners"], 
+                                 var_value))
 
 with Pool(processes=CORES) as pool:
     pool.map(test_corners, corners)
-

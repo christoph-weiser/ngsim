@@ -39,7 +39,12 @@ class Optimizer():
     bounds (tuple):        Bounds for the cost function inputs.
     cir (CircuitSection):  Circuit representation.
     ctl: (ControlSection): Control representation.
-    params: (list):        Names of parameters that are used as input.
+    params: (list):        list of dict with the following format:
+                           [{"variable": "var2", 
+                            "bound": "r", 
+                            "instances": ["r2", "r11", "r20", "r29"]}, 
+                            {...}, {...}, {...}]
+                         
 
 
     Optional inputs:
@@ -53,7 +58,7 @@ class Optimizer():
         self.cir = cir
         self.ctl = ctl
         self.params = params
-        self.df = pd.DataFrame(columns=params)
+        self.df = pd.DataFrame()
         self.constraints = constraints
         self.bound_conditions = bound_conditions
 
@@ -75,7 +80,6 @@ class Optimizer():
         if cores == -1:
             cores = os.cpu_count()
         manager = Manager()
-        # reslist is updated in run().
         self.reslist = manager.list()
         Ns = kwargs.pop("Ns", 5)
         with Pool(processes=cores) as pool:
@@ -112,7 +116,6 @@ class Optimizer():
         if cores == -1:
             cores = os.cpu_count()
         manager = Manager()
-        # reslist is updated in self.run().
         self.reslist = manager.list()
         maxiter         = kwargs.pop("maxiter", 1)
         polish          = kwargs.pop("polish", False)
@@ -280,13 +283,20 @@ class Optimizer():
         associated (dict):  association between current optimization
                             parameters list and names of these parameters.
         """
-        associated = {k:v for k,v in zip(self.params.keys(),x)}
+
+        associated = {p["variable"]:v for p,v in zip(self.params, x)}
+        instances = {}
+        for elem in self.params:
+            for inst in elem["instances"]:
+                instances[inst] = elem["variable"]
         self.cir.reset()
-        for k in associated:
-            uid = self.cir.filter(("instance", k))[0]
-            key = self.params[k][1]
-            val = associated[k]
-            replace_argument(uid, self.cir, key, val)
+
+        for inst in instances:
+            variable = instances[inst]
+            value = associated[variable]
+            uid = self.cir.filter(("instance", inst))[0]
+            replace_argument(uid, self.cir, variable, value)
+
         netlist = self.cir.netlist + self.ctl.netlist
         return netlist, associated
 
@@ -504,16 +514,17 @@ def create_bounds(params, lut):
 
     Required inputs:
     ----------------
-    params (dict):  dict of with parameter types can be
-                    the string or a tuple with the first
-                    parameter beeing a string.
+    params (dict):  dict with "bound" key indicating bound
+                    name and instances key, that are to 
+                    be applied with this bound. example:
+                    {"variable": "var1", 
+                     "bound": "r", 
+                     "instances": ["r1", "r2"]}
     lut (dict):     lookup table with bound for parameters.
+                    example:  {"r":  (1e3, 100e3)}
 
     Returns
     ----------------
     bounds (list):  List with the bounds for all parameters.
     """
-    if  isinstance(params[list(params.keys())[0]], str):
-        return [lut[params[k]] for k in params]
-    else:
-        return [lut[params[k][0]] for k in params]
+    return [lut[elem["bound"]] for elem in params]

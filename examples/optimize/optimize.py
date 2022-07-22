@@ -21,10 +21,6 @@ ctl = ControlSectionLogical(sim, outputfile=outputfile, outputdir=outputdir)
 cir = CircuitSection(circuitfile)
 
 
-#--------------------------------------------------------------------------------
-# Optimize
-#--------------------------------------------------------------------------------
-
 def costfunc(result, pars):
     gain  = result["tf"]["transfer_function"] 
     gain_nom  = lim_bound(gain,  48,   52)
@@ -35,13 +31,10 @@ def costfunc(result, pars):
 bound_lut = {"w":  (0.5, 5), "r":  (1e3, 100e3)}
 
 
-instances = {"xm3": ("w", "w"), 
-             "xm4": ("w", "w"), 
-             "xm1": ("w", "w"), 
-             "rf1": ("r", "res1"), 
-             "rf2": ("r", "res2")}
+instances = [ {"variable": "var1", "bound": "w", "instances": ["xm1", "xm2"]}, 
+              {"variable": "var2", "bound": "r", "instances": ["rf1", "rf2"]},] 
+
 
 bounds = create_bounds(instances, bound_lut)
-circuit = Optimizer(costfunc, bounds, cir, ctl, instances)
-opt = circuit.opt_de()
-
+optimizer = Optimizer(costfunc, bounds, cir, ctl, instances)
+result = optimizer.opt_de()

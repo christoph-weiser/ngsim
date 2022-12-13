@@ -292,10 +292,15 @@ class CircuitSection():
         self.parsed_circuit = self.parse(self._netlist)
         self.circuit = copy.deepcopy(self.parsed_circuit)
         self.synthesize()
+        self._kindex = next(iter(self.circuit))
 
 
     def __str__(self):
         return self.netlist
+
+
+    def __len__(self):
+        return len(self.circuit)
 
 
     def __add__(self, other):
@@ -308,6 +313,17 @@ class CircuitSection():
 
     def __getitem__(self, key):
         return self.circuit[key]
+
+
+    def __iter__(self):
+        return iter(self.circuit)
+
+
+    def __next__(self):
+        self._kindex += 1
+        if self._kindex < len(self):
+            return self._kindex
+        raise StopIteration
 
 
     @property
@@ -678,6 +694,31 @@ def replace_argument(uid, cir, key, val):
     args = repack_args(args)
     cir[uid]["args"] = args
     return cir
+
+
+def count_nets(cir):
+    """ Count the number of port connections to any net.
+
+    Required inputs:
+    ----------------
+    cir (CircuitSection): The circuit to count nets in.
+
+    Returns
+    ----------------
+    nets(dict): dictionary with net, count pairs. 
+
+    """
+    nets = {}
+    for k,v in cir.circuit.items():
+        pdict = v["ports"]
+        if pdict:
+            for node in pdict:
+                net = pdict[node]
+                if net in nets:
+                    nets[net] += 1
+                else:
+                    nets[net] = 1
+    return nets
 
 
 def read_netlist(filename):

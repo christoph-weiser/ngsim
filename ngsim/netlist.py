@@ -523,6 +523,7 @@ class CircuitSection():
         """
         matches = []
         for uid in self.circuit:
+            # TODO: match or fullmatch?
             if re.match(val, self.circuit[uid][key]):
                 matches.append(uid)
         return matches
@@ -613,6 +614,28 @@ class CircuitSection():
                 element = self.circuit[uid]
                 self.circuit[uid] = func(element, **kwargs)
         return len(matches)
+
+
+    def touches(self, expr):
+        """ Find circuit elements that touch a net.
+
+        Required inputs:
+        ----------------
+        expr (str): regular expression to match 
+
+
+        Returns
+        ----------------
+        uids (list):        List of uid's that matches the
+                            criteria.
+        """
+        uids = []
+        for k in self.circuit:
+            ports = self.circuit[k]["ports"]
+            for p in ports:
+                if re.fullmatch(expr, ports[p]):
+                    uids.append(k)
+        return uids
 
 
 def unpack_args(args):

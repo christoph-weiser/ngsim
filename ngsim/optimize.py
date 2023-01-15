@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import re
 import os
 import subprocess
@@ -26,7 +25,7 @@ from multiprocessing import Pool, Manager
 from scipy.optimize import differential_evolution, shgo, dual_annealing, brute
 
 from ngsim.invoke  import run_simulation
-from ngsim.netlist import replace_argument
+from spicer import replace_argument
 
 
 class Optimizer():

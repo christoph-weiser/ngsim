@@ -20,16 +20,16 @@ import copy
 import datetime
 import hashlib
 import collections
-import spicer
+import spatk
 
 
 class ControlSection():
     """ Ngspice control section from file or string.  """
     def __init__(self, netlist, is_filename=True):
         if is_filename:
-            self._netlist = spicer.read_netlist(netlist)
+            self._netlist = spatk.read_netlist(netlist)
         else:
-            self._netlist = spicer.clean_netlist(netlist)
+            self._netlist = spatk.clean_netlist(netlist)
 
     def __str__(self):
         return self._netlist
@@ -43,7 +43,7 @@ class ControlSection():
         return self._netlist
 
 
-class CircuitSection(spicer.Circuit):
+class CircuitSection(spatk.Circuit):
     """ CircuitSection represents a spice netlist.
 
     Required inputs:

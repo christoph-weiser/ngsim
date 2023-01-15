@@ -25,7 +25,7 @@ from multiprocessing import Pool, Manager
 from scipy.optimize import differential_evolution, shgo, dual_annealing, brute
 
 from ngsim.invoke  import run_simulation
-from spicer import replace_argument
+from spatk import replace_argument
 
 
 class Optimizer():

@@ -24,7 +24,7 @@ import spatk
 
 
 class ControlSection():
-    """ Ngspice control section from file or string.  """
+    """ Ngspice control section from file or string. """
     def __init__(self, netlist, is_filename=True):
         if is_filename:
             self._netlist = spatk.read_netlist(netlist)
@@ -32,7 +32,7 @@ class ControlSection():
             self._netlist = spatk.clean_netlist(netlist)
 
     def __str__(self):
-        return self._netlist
+        return self.netlist
 
     def __add__(self, other):
         return self.netlist + str(other)
@@ -40,7 +40,7 @@ class ControlSection():
     @property
     def netlist(self):
         """ Simulation ready circuit netlist """
-        return self._netlist
+        return "\n".join(self._netlist)
 
 
 class CircuitSection(spatk.Circuit):

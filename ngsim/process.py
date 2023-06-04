@@ -118,13 +118,14 @@ def extract_control(netlist, skip_plots=True, as_str=True):
         if inside_control_code:
             if skip_plots:
                 if not re.match("^plot.*", line):
-                    netlist_extract.append(line + "\n")
+                    netlist_extract.append(line)
             else:
-                netlist_extract.append(line + "\n")
+                netlist_extract.append(line)
         if re.match(".endc", line):
             inside_control_code = False
     if as_str:
-        netlist_extract = "".join(netlist_extract)
+        netlist_extract = "\n".join(netlist_extract)
+
     return netlist_extract
 
 

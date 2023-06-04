@@ -22,14 +22,19 @@ import hashlib
 import collections
 import spatk
 
+from ngsim.process import extract_control
+from spatk.helpers import read_netlist, clean_netlist
+
 
 class ControlSection():
     """ Ngspice control section from file or string. """
     def __init__(self, netlist, is_filename=True):
         if is_filename:
-            self._netlist = spatk.read_netlist(netlist)
+            with open(netlist, "r") as ifile:
+                self._netlist = ifile.read()
         else:
-            self._netlist = spatk.clean_netlist(netlist)
+            self._netlist = netlist
+        self._netlist = extract_control(self._netlist, as_str=False)
 
     def __str__(self):
         return self.netlist
@@ -41,6 +46,17 @@ class ControlSection():
     def netlist(self):
         """ Simulation ready circuit netlist """
         return "\n".join(self._netlist)
+
+    def write(self, filename):
+        """ Write the control netlist to file
+
+        Required inputs:
+        ----------------
+        filename (str):     Name of the output file.
+        """
+        with open(filename, "w") as ofile:
+            ofile.write("* Netlist written: {}\n".format(datetime.datetime.now()))
+            ofile.write(self.netlist)
 
 
 class CircuitSection(spatk.Circuit):

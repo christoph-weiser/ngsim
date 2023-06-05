@@ -165,24 +165,79 @@ def parse_configuration(filename):
     ----------------
     The custom format look like this:
 
-        :corners
+        :corner
             tt
             ss
             ff
-        :supply
-            1.7
-            1.8
-            1.9
         :temperature
             -20
             27
             85
-        :variable
-            var 1 2 3
-        :evaluate
-            vm1#branch < 300e-9
-            vm1#branch > 650e-9
+        :vdd(list, v)
+            1,2,3
+        :mypar(list, param)
+            1
+            2
+            3
 
+    """
+    data = open_configuration(filename)
+    conf = dict()
+
+    # par: parameter to change
+    # t:   specification type: list, dict, str
+    # st:  spice type: parameter, voltage source etc.
+    for line in data:
+        if line[0] == ":":
+            par, t, st = eval_par_def(line)
+            conf[par] = (st, t)
+        else:
+            if type(conf[par][1]) == list:
+                line = line.strip()
+                if "," in line:
+                    elements = line.split(",")
+                else:
+                    elements = [line]
+                for elem in elements:
+                    conf[par][1].append(elem)
+            else: #TODO: implement this
+                pass
+    return conf
+
+def eval_par_def(line):
+    line = line[1:].strip()
+    if line == "temperature":
+        par = "temperature"
+        t = list()
+        st = par
+    elif line == "corner":
+        par = "corner" 
+        t = list()
+        st = par
+    else:
+        line = line.replace(" ", "") 
+        s = line.split("(")
+        par = s[0]
+        spec = s[1].replace(")", "")
+        spec = spec.split(",")
+        t = spec[0]
+        st = spec[1]
+        d = {"list": list(),
+             "str":  str()}
+        t = d[t]
+    return par, t, st 
+
+
+def open_configuration(filename):
+    """ Open the configuraion file and clean it.
+
+    Required inputs:
+    ----------------
+    filename (str):     path to the configuration file.
+
+    Returns
+    ----------------
+    data (list):        list of  lines in config file
     """
     with open(filename, "r") as infile:
         raw = infile.read()
@@ -191,35 +246,4 @@ def parse_configuration(filename):
         for line in raw:
             if not re.match("\s*#|^\s*$", line):
                 data.append(line)
-    corners = []; supply = []; temperature = []
-    evaluate = []; variable = {}
-    cpars = None
-    for line in data:
-        if line in [":corners", ":supply", ":temperature", ":evaluate", ":variable"]:
-            cpars = line
-        else:
-            if cpars == ":corners":
-                corners.append(line.strip())
-            elif cpars == ":supply":
-                supply.append(line.strip())
-            elif cpars == ":temperature":
-                temperature.append(line.strip())
-            elif cpars == ":evaluate":
-                line = line.lstrip()
-                parts = line.split(" ")
-                elements = []
-                for elem in parts:
-                    if not elem == '':
-                        elements.append(elem)
-                evaluate.append(elements)
-            elif cpars == ":variable":
-                line = line.lstrip()
-                parts = line.split(" ")
-                elements = []
-                for elem in parts:
-                    if not elem == '':
-                        elements.append(elem)
-                variable[elements[0]] = elements[1:]
-    return {"corners": corners,   "supply": supply, "temperature": temperature,
-            "evaluate": evaluate, "variable": variable}
-
+    return data

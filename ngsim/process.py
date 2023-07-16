@@ -247,3 +247,18 @@ def open_configuration(filename):
             if not re.match("\s*#|^\s*$", line):
                 data.append(line)
     return data
+
+
+def make_netlist(cir, ctl):
+    """
+    Required inputs:
+    ----------------
+    cir (CircuitSection):  Circuit representation.
+    ctl (ControlSection):  Control representation.
+
+    Returns
+    ----------------
+    netlist (str): Simulation ready netlist.
+    """
+    return str(cir) + str(ctl) + "\n.end"
+

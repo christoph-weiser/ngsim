@@ -115,7 +115,7 @@ def latest_testresult(filename, location):
     files = sorted(os.listdir(path_results))
     matches = []
     for f in files:
-        if re.match("^{}.*csv$".format(name_file), f):
+        if re.match("^{}_\d*.csv$".format(name_file), f):
             matches.append(f)
     try:
         latest = sorted(matches)[-1]

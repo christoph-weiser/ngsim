@@ -179,20 +179,30 @@ def parse_configuration(filename):
             1
             2
             3
+        :myextpar(csv, file.txt, param)
+            1
+            2
+            3
 
     """
     data = open_configuration(filename)
     conf = dict()
 
     # par: parameter to change
-    # t:   specification type: list, dict, str
+    # t:   specification type: list, csv, str
     # st:  spice type: parameter, voltage source etc.
     for line in data:
         if line[0] == ":":
-            par, t, st = eval_par_def(line)
-            conf[par] = (st, t)
+            par, t, st, path = eval_par_def(line)
+            conf[par] = [st, t, path]
+            if conf[par][1] == "csv":
+                with open(path, "r") as ifile:
+                    elements = ifile.read().splitlines()
+                conf[par][1] = elements
         else:
-            if type(conf[par][1]) == list:
+            if conf[par][1] in ["list", "corner", "temperature"] or isinstance(conf[par][1], list):
+                if conf[par][1] == "list":
+                    conf[par][1] = list()
                 line = line.strip()
                 if "," in line:
                     elements = line.split(",")
@@ -200,32 +210,35 @@ def parse_configuration(filename):
                     elements = [line]
                 for elem in elements:
                     conf[par][1].append(elem)
-            else: #TODO: implement this
-                pass
+            elif conf[par][1] == "str":
+                conf[par][1] = elem
+            else:
+                raise Exception("specification type not supported")
     return conf
+
 
 def eval_par_def(line):
     line = line[1:].strip()
-    if line == "temperature":
-        par = "temperature"
-        t = list()
-        st = par
-    elif line == "corner":
-        par = "corner" 
-        t = list()
-        st = par
-    else:
+    # Defaults
+    st = line
+    t = "list"
+    par = line
+    path = None
+    # Case when defaults does not apply
+    if line not in ["temperature", "corner"]:
         line = line.replace(" ", "") 
         s = line.split("(")
+        s[-1] = s[-1].replace(")", "")
         par = s[0]
-        spec = s[1].replace(")", "")
-        spec = spec.split(",")
-        t = spec[0]
-        st = spec[1]
-        d = {"list": list(),
-             "str":  str()}
-        t = d[t]
-    return par, t, st 
+        spec = s[1].split(",")
+        if len(spec) == 2:  # normal
+            t = spec[0]
+            st = spec[1]
+        elif len(spec) == 3: # csv 
+            t = spec[0]
+            path = spec[1] 
+            st = spec[2]
+    return par, t, st, path
 
 
 def open_configuration(filename):

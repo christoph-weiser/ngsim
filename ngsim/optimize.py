@@ -243,6 +243,7 @@ class Optimizer():
         cost (float): result of costfunction evaluation.
         """
         netlist, params = self.precondition(x)
+        print(netlist)
         output = run_simulation(netlist)
         result = self.handle_output(output)
         cost = self.costfunc(result, params)
@@ -284,20 +285,20 @@ class Optimizer():
         """
 
         associated = {p["variable"]:v for p,v in zip(self.params, x)}
-        instances = {}
-        for elem in self.params:
-            for inst in elem["instances"]:
-                instances[inst] = elem["variable"]
+        updates = []
+        for par in self.params:
+            for inst in par["instances"]:
+                # example: ("w", 1, "xm1")
+                var = par["variable"]
+                updates.append((var, associated[var], inst)) 
         self.cir.reset()
-
-        for inst in instances:
-            variable = instances[inst]
-            value = associated[variable]
-            uid = self.cir.filter("instance", inst)[0]
-            replace_argument(uid, self.cir, variable, value)
-
+        for elem in updates:
+            print(elem)
+            uid = self.cir.filter("instance", elem[2])[0]
+            self.cir = replace_argument(uid, self.cir, elem[0], elem[1])
         netlist = self.cir.netlist + self.ctl.netlist
         return netlist, associated
+
 
 
     def handle_output(self, output):

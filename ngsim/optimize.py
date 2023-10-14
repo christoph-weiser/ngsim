@@ -217,7 +217,7 @@ class Optimizer():
                 for val in elem[1][k]:
                     cols["{}_{}".format(k, val)] = elem[1][k][val]
             cols["cost"] = elem[2]
-            self.df = self.df.append(cols, ignore_index=True)
+            self.df = pd.concat([self.df, pd.DataFrame([cols])], ignore_index=True)
 
 
     def _write_database(self, filename="optimize_output.csv"):
@@ -228,7 +228,7 @@ class Optimizer():
         filename (str): filename of the output file.
 
         """
-        self.df.to_csv("{}/{}".format(self.ctl.outputdir, filename))
+        self.df.to_csv(filename)
 
 
     def run(self, x):
@@ -293,7 +293,7 @@ class Optimizer():
         for inst in instances:
             variable = instances[inst]
             value = associated[variable]
-            uid = self.cir.filter(("instance", inst))[0]
+            uid = self.cir.filter("instance", inst)[0]
             replace_argument(uid, self.cir, variable, value)
 
         netlist = self.cir.netlist + self.ctl.netlist

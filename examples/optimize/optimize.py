@@ -1,40 +1,51 @@
 #!/usr/bin/env python3
 
-import re
-import os
-import subprocess
+import ngsim as ngs
 
-import numpy as np
+filename = "netlist.spice"
 
-from ngsim import *
+# file contains both netlist and control. 
+# SPATK will cut the control section from 
+# the netlist.
+ctl = ngs.ControlSection(filename)
+cir = ngs.CircuitSection(filename)
 
-
-outputdir   = "data"
-outputfile  = "output.csv"
-circuitfile = "netlist/netlist.sp"
-
-tf_sim = Simulation( cmd=tf("v(out,0)", "V0"), prints="transfer_function" )
-
-sim = [tf_sim]
-
-ctl = ControlSectionLogical(sim, outputfile=outputfile, outputdir=outputdir)
-cir = CircuitSection(circuitfile)
-
-
+# Cost function where the targets of the 
+# optimization process are defined.
+# result contains the printed outputs from
+# the simulation. pars contains the currently
+# used parameters.
 def costfunc(result, pars):
-    gain  = result["tf"]["transfer_function"] 
-    gain_nom  = lim_bound(gain,  48,   52)
-    cost =  gain_nom
+    vdc         = result["op_vdc"] 
+    fmeas       = result["ac_fmeas"] 
+    vdc_norm    = ngs.lim_bound(vdc, 0.75, 0.751)
+    fmeas_norm  = ngs.lim_bound(fmeas, 1e6, 1.01e6)
+    cost        = vdc_norm**2 + fmeas_norm**2
     return cost
- 
-
-bound_lut = {"w":  (0.5, 5), "r":  (1e3, 100e3)}
 
 
-instances = [ {"variable": "var1", "bound": "w", "instances": ["xm1", "xm2"]}, 
-              {"variable": "var2", "bound": "r", "instances": ["rf1", "rf2"]},] 
+# Define the bounds that will be assigned to 
+# variables.
+bound_lut = {"rres":  (100, 10e3 ),
+             "ccap":  (1e-12, 1e-6) }
 
+# Define the parameters of the optimization procedure.
+# "variable" is what is substituted in the instanced defined
+# in "instances". The bound matches are bound defines in the 
+# bound_lut.
+params = [ {"variable": "r", "bound": "rres", "instances": ["rsh"]},
+           {"variable": "c", "bound": "ccap", "instances": ["csh"]}] 
 
-bounds = create_bounds(instances, bound_lut)
-optimizer = Optimizer(costfunc, bounds, cir, ctl, instances)
-result = optimizer.opt_de()
+# Create optimization ready bounds.
+bounds = ngs.create_bounds(params, bound_lut)
+
+# Create the optimizer instance.
+optimizer = ngs.Optimizer(costfunc, bounds, cir, ctl, params)
+
+# Run a particular optization strategy for the problem. 
+res = optimizer.opt_de(cores=1, maxiter=100)
+
+# Print the resulting pararametes and the 
+# corresponding result.
+print(res.x)
+print(optimizer.eval(res.x))

@@ -1,0 +1,17 @@
+* Optimize example netlist
+
+vin vin 0  dc 1 ac 1
+rin vin va r=1e3
+csh va  0  c=1e-9
+rsh va  0  r=3e3
+
+.control
+op
+let op_vdc=v(va)
+print op_vdc
+ac dec 10 10 1e9
+meas ac ac_fmeas when v(va)=0.1
+print ac_fmeas
+exit
+.endc
+.end

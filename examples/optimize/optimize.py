@@ -4,17 +4,9 @@ import ngsim as ngs
 
 filename = "netlist.spice"
 
-# file contains both netlist and control. 
-# SPATK will cut the control section from 
-# the netlist.
 ctl = ngs.ControlSection(filename)
 cir = ngs.CircuitSection(filename)
 
-# Cost function where the targets of the 
-# optimization process are defined.
-# result contains the printed outputs from
-# the simulation. pars contains the currently
-# used parameters.
 def costfunc(result, pars):
     vdc         = result["op_vdc"] 
     fmeas       = result["ac_fmeas"] 
@@ -23,18 +15,17 @@ def costfunc(result, pars):
     cost        = vdc_norm**2 + fmeas_norm**2
     return cost
 
-
-# Define the bounds that will be assigned to 
-# variables.
+# Define the bounds that will be assigned to variables.
 bound_lut = {"rres":  (100, 10e3 ),
              "ccap":  (1e-12, 1e-6) }
 
 # Define the parameters of the optimization procedure.
-# "variable" is what is substituted in the instanced defined
-# in "instances". The bound matches are bound defines in the 
-# bound_lut.
-params = [ {"variable": "r", "bound": "rres", "instances": ["rsh"]},
-           {"variable": "c", "bound": "ccap", "instances": ["csh"]}] 
+params = [ {"type": "value", "bound": "rres", "instances": ["rsh"]},
+           {"type": "value", "bound": "ccap", "instances": ["csh"]}] 
+
+# Example replacing a particular argument of a component.        
+# {"type": "arg", "arg": "tc", "bound": "rtc", "instances": ["rsh"]}] 
+
 
 # Create optimization ready bounds.
 bounds = ngs.create_bounds(params, bound_lut)

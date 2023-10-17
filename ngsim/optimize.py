@@ -282,17 +282,25 @@ class Optimizer():
                             parameters list and names of these parameters.
         """
 
-        associated = {p["variable"]:v for p,v in zip(self.params, x)}
-        updates = []
-        for par in self.params:
-            for inst in par["instances"]:
-                # example: ("w", 1, "xm1")
-                var = par["variable"]
-                updates.append((var, associated[var], inst)) 
+        associated = {}
+        for p,v in zip(self.params, x): 
+            for inst in p["instances"]: 
+                if p["type"] == "value":
+                    associated[(inst, "value" )] = v
+                elif p["type"] == "arg":
+                    associated[(inst, p["arg"])] = v
+                else:
+                    raise Exception("Provided unexpected param 'type' field")
         self.cir.reset()
-        for elem in updates:
-            uid = self.cir.filter("instance", elem[2])[0]
-            self.cir = replace_argument(uid, self.cir, elem[0], elem[1])
+        for k in associated:
+            inst = k[0]
+            par = k[1]
+            value = associated[k]
+            uid = self.cir.filter("instance", inst)[0]
+            if par == "value":
+                self.cir[uid].value = str(value)
+            else:
+                self.cir = replace_argument(uid, self.cir, par, value)
         netlist = self.cir.netlist + self.ctl.netlist
         return netlist, associated
 

@@ -117,7 +117,7 @@ def extract_control(netlist, skip_plots=True, as_str=True):
             inside_control_code = True
         if inside_control_code:
             if skip_plots:
-                if not re.match("^plot.*", line):
+                if not re.match("^plot.*|^gnuplot.*", line):
                     netlist_extract.append(line)
             else:
                 netlist_extract.append(line)

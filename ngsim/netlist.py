@@ -43,6 +43,20 @@ class ControlSection():
         return self.netlist + str(other)
 
     @property
+    def lines(self):
+        """ Lines of control section netlist """
+        return self._netlist
+
+    @lines.setter
+    def lines(self, arg):
+        if isinstance(arg, str):
+            self._netlist = arg.split("\n")
+        elif isinstance(arg, list): 
+            self._netlist = arg
+        else:
+            raise Exception("control list must be str or list")
+
+    @property
     def netlist(self):
         """ Simulation ready circuit netlist """
         return "\n".join(self._netlist)

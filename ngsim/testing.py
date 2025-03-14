@@ -112,13 +112,13 @@ def latest_testresult(filename, location):
     """
     path_results = os.path.abspath("{}/../results".format(location))
     name_file = os.path.basename(filename).replace(".py", "")
-    files = sorted(os.listdir(path_results))
+    folders = sorted(os.listdir(path_results))
     matches = []
-    for f in files:
-        if re.match("^{}_\d*.csv$".format(name_file), f):
+    for f in folders:
+        if re.match("^{}_\d*$".format(name_file), f):
             matches.append(f)
     try:
         latest = sorted(matches)[-1]
     except IndexError:
         raise Exception("No files match the current analysis")
-    return path_results + "/" + latest
+    return path_results + "/" + latest + "/" + latest + ".csv"

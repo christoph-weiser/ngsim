@@ -106,5 +106,5 @@ class CircuitSection(spatk.Circuit):
         netlist:        A spice netlist generated from the "circuit" list/dict.
     """
 
-    def __init__(self, *args):
-        super(CircuitSection, self).__init__(*args)
+    def __init__(self, *args, **kwargs):
+        super(CircuitSection, self).__init__(*args, **kwargs)
